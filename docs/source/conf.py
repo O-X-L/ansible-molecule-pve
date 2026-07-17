@@ -73,23 +73,12 @@ html_theme_options = {
         },
     ],
     "version_dropdown": True,
-    "version_info": [
-        {
-            "version": "https://www.O-X-L.com",
-            "title": "About OXL",
-            "aliases": [],
-        },
-    ],
+    "version_info": [],
     "social": [
-        {
-            "icon": "fontawesome/solid/globe",
-            "link": "https://www.O-X-L.com",
-            "name": "About OXL",
-        },
         {
             "icon": "fontawesome/brands/github",
             "link": "https://github.com/O-X-L",
-            "name": "OXL on GitHub",
+            "name": "GitHub",
         },
     ],
 }
