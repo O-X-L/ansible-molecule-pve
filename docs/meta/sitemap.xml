@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+   <url><loc>https://ansible-molecule-pve.oxl.app/</loc></url>
+
+   <url><loc>https://ansible-molecule-pve.oxl.app/usage/1_install.html</loc></url>
+   <url><loc>https://ansible-molecule-pve.oxl.app/usage/2_setup.html</loc></url>
+   <url><loc>https://ansible-molecule-pve.oxl.app/usage/3_troubleshoot.html</loc></url>
+
+</urlset>
