@@ -38,12 +38,20 @@
           ansible.builtin.lineinfile:
             state: present
             path: '/etc/hosts'
-            line: "{%- if item.value.startswith('PVE:') -%}\
-            {{ hostvars[item.value.split('PVE:')[1]]['ansible_host'] }} {{ item.key }}\
-            {%- else -%}\
-            {{ item.value }} {{ item.key }}\
-            {%- endif -%}"
+            line: >-
+              {%- if item.value.startswith('PVE:') -%}
+              {{ hostvars[item.value.split('PVE:')[1]]['ansible_host'] }} {{ item.key }}
+              {%- else -%}
+              {{ item.value }}
+              {{ item.key }}
+              {%- endif -%}
+              {%- if item.value.startswith('PVE:') -%}
+              {{ hostvars[item.value.split('PVE:')[1]]['ansible_host'] }} {{ item.key }}
+              {%- else -%}
+              {{ item.value }} {{ item.key }}
+              {%- endif -%}
           loop: "{{ current_platform.etc_hosts | default({}) | dict2items }}"
           vars:
             current_platform: "{{ molecule_yml.platforms | selectattr('name', 'equalto', inventory_hostname) | first }}"
           when: current_platform.etc_hosts is defined
+          tags: [skip_ansible_lint]  # jinja[spacing]
