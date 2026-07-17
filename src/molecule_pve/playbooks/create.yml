@@ -181,7 +181,7 @@
       poll: 1
 
     - name: Start molecule instance(s) (async)
-      niceshopsorg.molecule_proxmox_v2.qemu_agent:
+      oxlorg.molecule_pve.qemu_agent:
         api_host: "{{ api_host | d(options.api_host) | d(omit) }}"
         api_port: "{{ api_port | d(options.api_port) | d(omit) }}"
         api_user: "{{ api_user | d(options.api_user) | d(omit) }}"
