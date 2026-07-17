@@ -18,3 +18,4 @@
   tasks:
     - name: Ping'ing server
       ansible.builtin.command: 'ping -c 4 server.intern'
+      changed_when: false
