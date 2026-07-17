@@ -1,0 +1,72 @@
+---
+
+dependency:
+  name: galaxy
+  options:
+    ignore-certs: false
+    ignore-errors: false
+    role-file: requirements.yml
+    requirements-file: requirements.yml
+
+driver:
+  name: 'molecule-pve'
+  options:
+    # debug: true
+    api_host: "${MOLECULE_PROXMOX_HOST}"
+    api_port: "${MOLECULE_PROXMOX_PORT}"
+    proxmox_secrets: "${MOLECULE_PROXMOX_SECRETS_FILE}"
+    node: "${MOLECULE_PROXMOX_NODE}"
+    ssh_user: "${MOLECULE_PROXMOX_SSH_USER}"
+    ssh_port: "${MOLECULE_PROXMOX_SSH_PORT}"
+    ssh_identity_file: "${MOLECULE_PROXMOX_SSH_IDENTITY_FILE}"
+    validate_certs: false
+    pool: "${MOLECULE_PROXMOX_POOL}"
+    timeout: 600
+    enforce_unique_name: true  # if you want to ensure consistent vm-naming
+
+platforms:
+  # you can use dynamic naming to ensure parallel execution of the molecule-tests is possible without interference
+  - name: "test-dummy-${USER:-ci}-${MOLECULE_PROXMOX_UID}-server"
+    template_name: "${MOLECULE_PROXMOX_TEMPLATE}"
+    groups: ['test_converge', 'test_verify_server']
+
+  - name: "test-dummy-${USER:-ci}-${MOLECULE_PROXMOX_UID}"
+    template_name: "${MOLECULE_PROXMOX_TEMPLATE}"
+    groups: ['test_verify_client']
+    etc_hosts:
+      "custom1.intern": "192.168.1.1"
+      "server.intern": "PVE:test-dummy-${USER:-ci}-${MOLECULE_PROXMOX_UID}-server"
+
+ansible:
+  cfg:
+    defaults:
+      host_key_checking: false
+      filter_plugins: "${ANSIBLE_FILTER_PLUGINS}"
+    ssh_connection:
+      pipelining: true
+  env:
+    ANSIBLE_FORCE_COLOR: "1"
+    ANSIBLE_LOAD_CALLBACK_PLUGINS: "1"
+    ANSIBLE_COLLECTIONS_PATH: "${ANSIBLE_COLLECTIONS_PATH}"
+  executor:
+    backend: ansible-playbook
+    args:
+      ansible_playbook:
+        - --diff
+        - --force-handlers
+
+scenario:
+  name: default
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - side_effect
+    - verify
+    - cleanup
+    - destroy

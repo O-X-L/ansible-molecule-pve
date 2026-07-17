@@ -1,0 +1,19 @@
+---
+
+- name: TEST
+  gather_facts: true
+  become: true
+  hosts: test_converge
+  tasks:
+    - name: DEBUG | Ansible Facts
+      ansible.builtin.debug:
+        var: ansible_facts
+
+    - name: Add test-file
+      ansible.builtin.copy:
+        content: |
+          # ansible_managed
+          test-content
+          123
+        dest: '/etc/abc.txt'
+        mode: 0644

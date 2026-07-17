@@ -1,0 +1,6 @@
+global-exclude *_pytest.py
+recursive-include src/molecule_pve/*
+include requirements.txt
+include LICENSE
+recursive-include attributions/
+include CHANGELOG.md

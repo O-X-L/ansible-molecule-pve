@@ -1,0 +1,251 @@
+---
+
+- name: Create
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    options: "{{ molecule_yml.driver.options }}"
+
+  tasks:
+    - name: DEBUG | Display collections path
+      ansible.builtin.debug:
+        msg: "COLLECTIONS PATH: {{ lookup('env', 'ANSIBLE_COLLECTIONS_PATH') }}"
+      when: options.debug | d(false) | bool
+
+    - name: DEBUG | Display filter-plugins path
+      ansible.builtin.debug:
+        msg: "FILTER-PLUGINS PATH: {{ lookup('env', 'ANSIBLE_FILTER_PLUGINS') }}"
+      when: options.debug | d(false) | bool
+
+    - name: Load proxmox connection secrets
+      ansible.builtin.include_tasks: common/secrets.yml
+      when: options.proxmox_secrets is defined
+
+    - name: Validating options
+      ansible.builtin.include_tasks: common/validate_options.yml
+
+    - name: Check for molecule-cache
+      ansible.builtin.stat:
+        path: "{{ molecule_instance_config }}"
+      register: cache_file
+
+    - name: Load molecule-cache
+      ansible.builtin.set_fact:
+        cache_instances: "{{ lookup('file', molecule_instance_config) | from_yaml }}"
+      when: cache_file.stat.exists
+
+    - name: Fail if molecule-cache exists
+      ansible.builtin.fail:
+        msg: "FAIL: Existing molecule-cache found. Maybe you need to run 'molecule destroy'?"
+      when:
+        - cache_file.stat.exists
+        - cache_instances | length > 0
+
+    - name: Query existing VMs
+      community.proxmox.proxmox_vm_info:
+        api_host: "{{ api_host | d(options.api_host) | d(omit) }}"
+        api_port: "{{ api_port | d(options.api_port) | d(omit) }}"
+        api_user: "{{ api_user | d(options.api_user) | d(omit) }}"
+        api_password: "{{ api_password | d(options.api_password) | d(omit) }}"
+        api_token_id: "{{ api_token_id | d(options.api_token_id) | d(omit) }}"
+        api_token_secret: "{{ api_token_secret | d(options.api_token_secret) | d(omit) }}"
+        validate_certs: "{{ options.validate_certs | d(omit) }}"
+        node: "{{ options.node }}"
+        type: qemu
+      register: existing_vms
+
+    - name: DEBUG | Display existing VMs
+      ansible.builtin.debug:
+        var: existing_vms
+      when: options.debug | d(false) | bool
+
+    - name: Fail if VM with same name exists (opt-in)
+      ansible.builtin.fail:
+        msg: "FAIL: VM with name '{{ p.name }}' already exists on Proxmox node '{{ options.node }}' 
+        (options.enforce_unique_name = {{ options.enforce_unique_name }})"
+      when:
+        - options.enforce_unique_name | d(false)
+        - p.name in (existing_vms.proxmox_vms | map(attribute='name') | list)
+      loop: "{{ molecule_yml.platforms }}"
+      loop_control:
+        loop_var: p
+        label: "{{ p.name }}"
+
+    - name: Inform user if VM with same name exists
+      ansible.builtin.debug:
+        msg: "INFO: VM with name '{{ p.name }}' already exists on Proxmox node '{{ options.node }}'"
+      when: p.name in (existing_vms.proxmox_vms | map(attribute='name') | list)
+      loop: "{{ molecule_yml.platforms }}"
+      loop_control:
+        loop_var: p
+        label: "{{ p.name }}"
+
+    - name: Create molecule instance(s) (async)
+      community.proxmox.proxmox_kvm:
+        state: present
+        api_host: "{{ api_host | d(options.api_host) | d(omit) }}"
+        api_port: "{{ api_port | d(options.api_port) | d(omit) }}"
+        api_user: "{{ api_user | d(options.api_user) | d(omit) }}"
+        api_password: "{{ api_password | d(options.api_password) | d(omit) }}"
+        api_token_id: "{{ api_token_id | d(options.api_token_id) | d(omit) }}"
+        api_token_secret: "{{ api_token_secret | d(options.api_token_secret) | d(omit) }}"
+        vmid: "{{ p.proxmox_template_vmid | d(p.template_vmid, true) | d(omit, true) }}"
+        clone: "{{ p.proxmox_template_name | d(p.template_name, true) | d(options.template_name, true) | d(p.box, true) | d('molecule', true) }}"
+        name: "{{ p.name }}"
+        node: "{{ options.node }}"
+        full: "{{ options.full | d(omit) }}"
+        timeout: "{{ options.timeout | d(120) }}"
+        validate_certs: "{{ options.validate_certs | d(omit) }}"
+        ca_path: "{{ options.ca_path | d(omit) }}"
+        pool: "{{ options.pool | d(omit) }}"
+        newid: "{{ p.newid | d(p.newid, true) | d(omit, true) }}"
+      loop: "{{ molecule_yml.platforms }}"
+      loop_control:
+        loop_var: p
+        label: "{{ p.name }}"
+      async: "{{ options.timeout | d(120) }}"
+      poll: 0
+      register: proxmox_vm_clone
+
+    - name: DEBUG | Display VM-clone output
+      ansible.builtin.debug:
+        var: proxmox_vm_clone
+      when: options.debug | d(false) | bool
+
+    - name: Wait for all VMs to be created
+      ansible.builtin.async_status:
+        jid: "{{ vm_creation.ansible_job_id }}"
+      register: proxmox_vm_clone_result
+      until: proxmox_vm_clone_result.finished == 1
+      retries: "{{ options.timeout | d(120) }}"
+      delay: 2
+      loop: "{{ proxmox_vm_clone.results }}"
+      loop_control:
+        loop_var: vm_creation
+        label: "{{ vm_creation.p.name }}"
+
+    - name: DEBUG | Display VM-clone result
+      ansible.builtin.debug:
+        var: proxmox_vm_clone_result
+      when: options.debug | d(false) | bool
+
+    # ensures the user can run "molecule destroy" even if a create-task fails mid-way
+    - name: Add instances to molecule-cache
+      ansible.builtin.copy:
+        content: |
+          {% for vm_creation_result in proxmox_vm_clone_result.results %}
+          - instance: {{ vm_creation_result.vm_creation.p.name }}
+            vmid: {{ vm_creation_result.vmid }}
+          {% endfor %}
+        dest: "{{ molecule_instance_config }}"
+        mode: 0644
+
+    - name: Update molecule instance config(s)
+      community.proxmox.proxmox_kvm:
+        state: present
+        update: true
+        api_host: "{{ api_host | d(options.api_host) | d(omit) }}"
+        api_port: "{{ api_port | d(options.api_port) | d(omit) }}"
+        api_user: "{{ api_user | d(options.api_user) | d(omit) }}"
+        api_password: "{{ api_password | d(options.api_password) | d(omit) }}"
+        api_token_id: "{{ api_token_id | d(options.api_token_id) | d(omit) }}"
+        api_token_secret: "{{ api_token_secret | d(options.api_token_secret) | d(omit) }}"
+        vmid: "{{ vm_creation_result.vmid }}"
+        node: "{{ options.node }}"
+        timeout: "{{ options.timeout | d(120) }}"
+        validate_certs: "{{ options.validate_certs | d(omit) }}"
+        ca_path: "{{ options.ca_path | d(omit) }}"
+        ciuser: "{{ vm.ciuser | d(omit, true) }}"
+        cipassword: "{{ vm.cipassword | d(omit, true) }}"
+        citype: "{{ vm.citype | d(omit, true) }}"
+        ipconfig: "{{ vm.ipconfig | d(omit, true) }}"
+        nameservers: "{{ vm.nameservers | d(omit, true) }}"
+        searchdomains: "{{ vm.searchdomains | d(omit, true) }}"
+        sshkeys: "{{ vm.sshkeys | d(omit, true) }}"
+      when: >
+        vm.ciuser is defined or
+        vm.cipassword is defined or
+        vm.citype is defined or
+        vm.ipconfig is defined or
+        vm.nameservers is defined or
+        vm.searchdomains is defined or
+        vm.sshkeys is defined
+      vars:
+        vm: "{{ vm_creation_result.vm_creation.p }}"
+      loop: "{{ proxmox_vm_clone_result.results }}"
+      loop_control:
+        loop_var: vm_creation_result
+        label: "{{ vm.name }}, {{ vm_creation_result.vmid }}"
+      async: "{{ options.timeout | d(120) }}"
+      poll: 1
+
+    - name: Start molecule instance(s) (async)
+      niceshopsorg.molecule_proxmox_v2.qemu_agent:
+        api_host: "{{ api_host | d(options.api_host) | d(omit) }}"
+        api_port: "{{ api_port | d(options.api_port) | d(omit) }}"
+        api_user: "{{ api_user | d(options.api_user) | d(omit) }}"
+        api_password: "{{ api_password | d(options.api_password) | d(omit) }}"
+        api_token_id: "{{ api_token_id | d(options.api_token_id) | d(omit) }}"
+        api_token_secret: "{{ api_token_secret | d(options.api_token_secret) | d(omit) }}"
+        vmid: "{{ vm_creation_result.vmid }}"
+        timeout: "{{ options.timeout | d(120) }}"
+        # NOTE: seems the "proxmoxer" library has no "ca_path" implemented
+        validate_certs: "{{
+        false if options.ca_path | d(none) is not none else
+        options.validate_certs | d(omit) }}"
+        # ca_path: "{{ options.ca_path | d(omit) }}"
+      loop: "{{ proxmox_vm_clone_result.results }}"
+      loop_control:
+        loop_var: vm_creation_result
+        label: "{{ vm_creation_result.vm_creation.p.name }}, {{ vm_creation_result.vmid }}"
+      async: "{{ options.timeout | d(120) }}"
+      poll: 0
+      register: proxmox_vm_start
+
+    - name: DEBUG | Display VM-start output
+      ansible.builtin.debug:
+        var: proxmox_vm_start
+      when: options.debug | d(false) | bool
+
+    - name: Wait for all VMs to be started
+      ansible.builtin.async_status:
+        jid: "{{ vm_start.ansible_job_id }}"
+      register: proxmox_vm_start_result
+      until: proxmox_vm_start_result.finished == 1
+      retries: "{{ options.timeout | d(120) }}"
+      delay: 2
+      loop: "{{ proxmox_vm_start.results }}"
+      loop_control:
+        loop_var: vm_start
+        label: "{{ vm_start.vm_creation_result.vm_creation.p.name }}"
+
+    - name: DEBUG | Display VM-start result
+      ansible.builtin.debug:
+        var: proxmox_vm_start_result
+      when: options.debug | d(false) | bool
+
+    - name: Generate molecule-cache
+      ansible.builtin.set_fact:
+        instance_config:
+          instance: "{{ vm.name }}"
+          address: "{{ vm_start_result.addresses[0] }}"
+          user: "{{ options.ssh_user | d('molecule') }}"
+          port: "{{ options.ssh_port | d(22) }}"
+          identity_file: "{{ options.ssh_identity_file }}"
+          vmid: "{{ vm_start_result.vmid }}"
+      vars:
+        vm: "{{ vm_start_result.vm_start.vm_creation_result.vm_creation.p }}"
+      loop: "{{ proxmox_vm_start_result.results }}"
+      loop_control:
+        loop_var: vm_start_result
+        label: "{{ vm.name }}, {{ vm_start_result.vmid }}, {{ vm_start_result.addresses[0] }}"
+      register: instance_configs
+
+    - name: Update instances in molecule-cache
+      ansible.builtin.copy:
+        content: "{{ cache_content | to_nice_yaml }}"
+        dest: "{{ molecule_instance_config }}"
+        mode: 0644
+      vars:
+        cache_content: "{{ instance_configs.results | map(attribute='ansible_facts.instance_config') | list }}"

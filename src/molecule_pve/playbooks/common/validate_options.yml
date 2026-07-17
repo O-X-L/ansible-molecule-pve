@@ -1,0 +1,27 @@
+---
+
+- name: Validating required driver-options
+  ansible.builtin.assert:
+    that:
+      - api_host_is_set
+      - api_user_is_set
+      - api_pwd_is_set or (api_token_id_is_set and api_token_secret_is_set)
+
+  vars:
+    api_host_is_set: "{{ api_host | d(options.api_host) | d(none, true) is not none }}"
+    api_user_is_set: "{{ api_user | d(options.api_user) | d(none, true) is not none }}"
+    api_pwd_is_set: "{{ api_password | d(options.api_password) | d(none, true) is not none }}"
+    api_token_secret_is_set: "{{ api_token_secret | d(options.api_token_secret) | d(none, true) is not none }}"
+    api_token_id_is_set: "{{ api_token_id | d(options.api_token_id) | d(none, true) is not none }}"
+
+- name: Validating required platform-options
+  ansible.builtin.assert:
+    that:
+      - platform_name_is_set
+
+  vars:
+    platform_name_is_set: "{{ p.name | d(none, true) is not none }}"
+  loop: "{{ molecule_yml.platforms }}"
+  loop_control:
+    loop_var: p
+    label: "{{ p.name }}"

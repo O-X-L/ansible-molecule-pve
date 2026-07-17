@@ -1,0 +1,20 @@
+---
+
+- name: Verifying Server-side
+  gather_facts: false
+  become: false
+  hosts: test_verify_server
+  tasks:
+    - name: Ensuring file exists
+      ansible.builtin.stat:
+        path: '/etc/abc.txt'
+      register: test_file
+      failed_when: not test_file.stat.exists
+
+- name: Verifying Client-side
+  gather_facts: false
+  become: false
+  hosts: test_verify_client
+  tasks:
+    - name: Ping'ing server
+      ansible.builtin.command: 'ping -c 4 server.intern'

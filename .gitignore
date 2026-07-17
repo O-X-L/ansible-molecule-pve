@@ -1,0 +1,10 @@
+__pycache__
+/.venv/
+/venv/
+/.ansible/
+/.idea/
+/.vscode/
+VERSION
+/docs/build/
+/dist/
+/src/molecule_pve.egg-info
