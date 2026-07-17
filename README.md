@@ -1,6 +1,8 @@
 # Ansible-Molecule Proxmox-VE Driver
 
 [![Lint](https://github.com/O-X-L/ansible-molecule-pve/actions/workflows/lint.yml/badge.svg?branch=latest)](https://github.com/O-X-L/ansible-molecule-pve/actions/workflows/lint.yml)
+[![Check Docs](https://github.com/O-X-L/ansible-molecule-pve/actions/workflows/check_docs.yml/badge.svg?branch=latest)](https://github.com/O-X-L/ansible-molecule-pve/actions/workflows/check_docs.yml)
+
 
 This repository holds an Ansible-Molecule driver for Proxmox-VE.
 

@@ -77,6 +77,7 @@ class Proxmox(Driver):
             return next(item for item in instance_config_dict if item["instance"] == instance_name)
 
         except TypeError as e:
+            # pylint: disable=W0707
             raise MoleculeError(str(e))
 
     def sanity_checks(self):
