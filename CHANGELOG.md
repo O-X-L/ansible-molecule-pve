@@ -11,4 +11,4 @@
 
 ## Time of Forking
 
-This is a fork or the [molecule-proxmox](http://pypi.org/project/molecule-proxmox), which was originally created by [Michael Meffie](https://github.com/meffie).
+This is a fork fo the [molecule-proxmox](http://pypi.org/project/molecule-proxmox) module, which was originally created by [Michael Meffie](https://github.com/meffie).

@@ -54,7 +54,7 @@ When contributing via PR's, please mention if/how you used AI and if so - how yo
 
 ## Authors / Credits
 
-This is a fork or the [molecule-proxmox](http://pypi.org/project/molecule-proxmox), which was originally created by [Michael Meffie](https://github.com/meffie).
+This is a fork of the [molecule-proxmox](http://pypi.org/project/molecule-proxmox) module, which was originally created by [Michael Meffie](https://github.com/meffie).
 
 It was modified and enhanced by [Pascal Rath](https://github.com/superstes).
 
