@@ -62,7 +62,7 @@
 
     - name: Fail if VM with same name exists (opt-in)
       ansible.builtin.fail:
-        msg: "FAIL: VM with name '{{ p.name }}' already exists on Proxmox node '{{ options.node }}' 
+        msg: "FAIL: VM with name '{{ p.name }}' already exists on Proxmox node '{{ options.node }}'
         (options.enforce_unique_name = {{ options.enforce_unique_name }})"
       when:
         - options.enforce_unique_name | d(false)
