@@ -1,6 +1,6 @@
 from datetime import datetime
 
-# pylint: disable=W0622
+# pylint: disable=W0622,C0103
 
 project = 'Ansible-Molecule Proxmox-VE'
 author = 'Rath Pascal'
@@ -11,7 +11,7 @@ exclude_patterns = ['_tmpl/*.rst', '_cp/*.rst']
 html_theme = 'sphinx_immaterial'
 html_static_path = ['_static']
 html_logo = 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Logo_Proxmox.svg/1920px-Logo_Proxmox.svg.png'
-html_favicon = '_static/img/favicon.ico'
+html_favicon = '_static/img/favicon.png'
 html_js_files = ['https://files.oxl.at/js/feedback.js']
 html_css_files = ['css/main.css', 'https://files.oxl.at/css/feedback.css']
 master_doc = 'index'
