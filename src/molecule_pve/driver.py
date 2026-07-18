@@ -31,7 +31,7 @@ LOG = logger.get_logger(__name__)
 class Proxmox(Driver):
     def __init__(self, config=None):
         super().__init__(config)
-        self._name = "molecule-proxmox"
+        self._name = "molecule-pve"
 
     @property
     def name(self):

@@ -44,7 +44,7 @@ Basic
          pool: test
 
          ## Create Linked clone instead of Full clone.
-         full: false
+         full_clone: false
 
          ## Fail "create" if another vm with the same name already exists
          enforce_unique_name: false

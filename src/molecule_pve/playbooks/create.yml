@@ -94,7 +94,7 @@
         clone: "{{ p.proxmox_template_name | d(p.template_name, true) | d(options.template_name, true) | d(p.box, true) | d('molecule', true) }}"
         name: "{{ p.name }}"
         node: "{{ options.node }}"
-        full: "{{ options.full | d(omit) }}"
+        full: "{{ options.full | d(options.full_clone) | d(omit) }}"
         timeout: "{{ options.timeout | d(120) }}"
         validate_certs: "{{ options.validate_certs | d(omit) }}"
         ca_path: "{{ options.ca_path | d(omit) }}"
