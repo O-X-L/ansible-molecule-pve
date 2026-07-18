@@ -135,8 +135,8 @@
       ansible.builtin.copy:
         content: |
           {% for vm_creation_result in proxmox_vm_clone_result.results %}
-          - instance: {{ vm_creation_result.vm_creation.p.name }}
-            vmid: {{ vm_creation_result.vmid }}
+          -   instance: {{ vm_creation_result.vm_creation.p.name }}
+              vmid: {{ vm_creation_result.vmid }}
           {% endfor %}
         dest: "{{ molecule_instance_config }}"
         mode: 0644
